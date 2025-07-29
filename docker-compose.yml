@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:alpine
+    container_name: assetsync-postgres
+    restart: unless-stopped
+    ports:
+      - "5434:5432"  # Using port 5434 to avoid conflicts
+    environment:
+      POSTGRES_DB: assetsync
+      POSTGRES_USER: assetsync_user
+      POSTGRES_PASSWORD: assetsync_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - assetsync_network
+
+volumes:
+  postgres_data:
+
+networks:
+  assetsync_network:
+    driver: bridge
