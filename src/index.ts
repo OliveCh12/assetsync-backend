@@ -1,101 +1,141 @@
+/**
+ * Assetimport { env } from 'hono/adapter';
+import { initDatabase } from './lib/db.js';c Backend - Main Application Entry Point
+ * 
+ * Hono-based API server with RPC type safety for asset management platform
+ */
+
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { prettyJSON } from 'hono/pretty-json';
+import { HTTPException } from 'hono/http-exception';
 import { env } from 'hono/adapter';
+import type { HonoEnv } from './lib/env.js';
 import { initDatabase } from './lib/db.js';
-import { appRouter } from './routes/index.js';
-import type { TRPCContext } from './lib/trpc.js';
 
-// Define environment bindings type
+// Import route modules
+import authRoutes from './routes/auth.js';
+import assetRoutes from './routes/assets.js';
+import userRoutes from './routes/users.js';
+
+// Define environment types for type safety
 type Bindings = {
   DATABASE_URL: string;
   JWT_SECRET: string;
+  FRONTEND_URL: string;
   NODE_ENV: string;
+  PORT: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+// Create main Hono app with typed environment
+const app = new Hono<HonoEnv>();
 
-// Middleware
+// Global middleware with environment-aware CORS
 app.use('*', logger());
+app.use('*', prettyJSON());
 app.use('*', async (c, next) => {
-  const corsMiddlewareHandler = cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+  const { FRONTEND_URL } = env<{ FRONTEND_URL: string }>(c);
+  const corsMiddleware = cors({
+    origin: FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
   });
-  return corsMiddlewareHandler(c, next);
-});
-
-// Initialize database connection middleware
-app.use('*', async (c, next) => {
-  const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c);
-  
-  try {
-    initDatabase(DATABASE_URL);
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-  }
-  
-  await next();
+  return corsMiddleware(c, next);
 });
 
 // Health check endpoint
-app.get('/health', (c) => {
-  const { NODE_ENV } = env<{ NODE_ENV: string }>(c);
-  
-  return c.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    environment: NODE_ENV || 'development'
-  });
-});
-
-// tRPC API routes
-app.use('/api/trpc/*', async (c) => {
-  const createContext = (): TRPCContext => {
-    // In a real app, you'd extract the user ID from JWT token
-    // For now, we'll just pass the Hono context
-    return {
-      c: c as any, // Type assertion to fix the compatibility issue
-      userId: undefined, // TODO: Extract from Authorization header
-    };
-  };
-
-  return fetchRequestHandler({
-    router: appRouter,
-    createContext,
-    endpoint: '/api/trpc',
-    req: c.req.raw,
-  });
-});
-
-// Default route
 app.get('/', (c) => {
-  const { NODE_ENV } = env<{ NODE_ENV: string }>(c);
-  
   return c.json({
-    message: 'AssetSync API Server',
+    name: 'AssetSync API',
     version: '1.0.0',
-    environment: NODE_ENV || 'development',
-    endpoints: {
-      health: '/health',
-      api: '/api/trpc',
-    },
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Start server
-const port = parseInt(process.env.PORT || '3000');
+// API routes with versioning
+const api = app.basePath('/api/v1');
 
-serve({
-  fetch: app.fetch,
-  port,
-}, (info) => {
-  console.log('🚀 AssetSync API Server is running!');
-  console.log(`📡 Server URL: http://localhost:${info.port}`);
-  console.log(`🏥 Health Check: http://localhost:${info.port}/health`);
-  console.log(`🔌 tRPC API: http://localhost:${info.port}/api/trpc`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+// Mount route modules
+api.route('/auth', authRoutes);
+api.route('/assets', assetRoutes);
+api.route('/users', userRoutes);
+
+// Global error handler
+app.onError((err, c) => {
+  console.error('Global error handler:', err);
+
+  if (err instanceof HTTPException) {
+    return err.getResponse();
+  }
+
+  const { NODE_ENV } = env<{ NODE_ENV: string }>(c);
+  return c.json({
+    success: false,
+    error: 'Internal Server Error',
+    message: NODE_ENV === 'development' ? err.message : 'Something went wrong',
+  }, 500);
 });
+
+// 404 handler
+app.notFound((c) => {
+  return c.json({
+    success: false,
+    error: 'Not Found',
+    message: 'The requested resource was not found',
+  }, 404);
+});
+
+// Initialize database and start server
+async function startServer() {
+  try {
+    // For Node.js, we can still access process.env directly during startup
+    // The env() helper is for runtime request handling
+    const DATABASE_URL = process.env.DATABASE_URL;
+    const PORT = process.env.PORT || '3001';
+    
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+
+    console.log('🔗 Connecting to database...');
+    initDatabase(DATABASE_URL);
+    console.log('✅ Database connected successfully');
+
+    // Start server
+    const port = parseInt(PORT);
+    
+    console.log(`🚀 Starting AssetSync API server on port ${port}...`);
+    
+    serve({
+      fetch: app.fetch,
+      port,
+    });
+
+    console.log(`🎉 AssetSync API is running on http://localhost:${port}`);
+    console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
+    
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Received SIGINT, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
+  process.exit(0);
+});
+
+// Start the server
+startServer();
+
+// Export app type for RPC client generation
+export default app;
+export type AppType = typeof api;
