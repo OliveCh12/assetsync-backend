@@ -19,11 +19,13 @@ import { initDatabase } from './lib/db.js';
 import authRoutes from './routes/auth.js';
 import assetRoutes from './routes/assets.js';
 import userRoutes from './routes/users.js';
+import categoryRoutes from './routes/categories.js';
 
 // Import types for better RPC support
 import type { AuthRoutesType } from './routes/auth.js';
 import type { AssetRoutesType } from './routes/assets.js';
 import type { UserRoutesType } from './routes/users.js';
+import type { CategoryRoutesType } from './routes/categories.js';
 
 // Define environment types for type safety
 type Bindings = {
@@ -66,6 +68,7 @@ const api = app.basePath('/api/v1');
 api.route('/auth', authRoutes);
 api.route('/assets', assetRoutes);
 api.route('/users', userRoutes);
+api.route('/', categoryRoutes); // Categories routes are mounted at root level
 
 // Global error handler
 app.onError((err, c) => {
@@ -146,4 +149,4 @@ export default app;
 export type AppType = typeof api;
 
 // Export individual route types for granular RPC client generation
-export type { AuthRoutesType, AssetRoutesType, UserRoutesType };
+export type { AuthRoutesType, AssetRoutesType, UserRoutesType, CategoryRoutesType };
