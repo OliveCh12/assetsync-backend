@@ -5,11 +5,15 @@
  */
 
 import { sign, verify, decode } from 'hono/jwt';
+import { randomBytes } from 'crypto';
 
-// JWT configuration
-const JWT_ALGORITHM = 'HS256' as const;
-const ACCESS_TOKEN_EXPIRES_IN = 60 * 15; // 15 minutes
-const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days
+// JWT configuration constants
+export const JWT_ALGORITHM = 'HS256' as const;
+export const ACCESS_TOKEN_EXPIRES_IN = 60 * 15; // 15 minutes
+export const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days
+
+// JWT algorithm type for better type safety
+export type JWTAlgorithm = typeof JWT_ALGORITHM;
 
 export interface UserJWTPayload {
   userId: string;
@@ -143,6 +147,40 @@ export const extractTokenFromHeader = (authHeader: string | undefined): string |
  * Generate a secure random session token for database storage
  */
 export const generateSessionToken = (): string => {
-  const crypto = require('crypto');
-  return crypto.randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
+};
+
+/**
+ * Validate JWT payload structure
+ */
+export const validateJWTPayload = (payload: any): payload is UserJWTPayload => {
+  return (
+    payload &&
+    typeof payload.userId === 'string' &&
+    typeof payload.email === 'string' &&
+    (payload.type === 'personal' || payload.type === 'professional') &&
+    (payload.tokenType === 'access' || payload.tokenType === 'refresh') &&
+    typeof payload.iat === 'number' &&
+    typeof payload.exp === 'number'
+  );
+};
+
+/**
+ * Enhanced token verification with payload validation
+ */
+export const verifyTokenSafe = async (
+  token: string,
+  secret: string
+): Promise<UserJWTPayload> => {
+  try {
+    const payload = await verify(token, secret, JWT_ALGORITHM);
+    
+    if (!validateJWTPayload(payload)) {
+      throw new Error('Invalid JWT payload structure');
+    }
+    
+    return payload;
+  } catch (error) {
+    throw new Error(`Invalid token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };

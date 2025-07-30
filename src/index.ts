@@ -20,6 +20,11 @@ import authRoutes from './routes/auth.js';
 import assetRoutes from './routes/assets.js';
 import userRoutes from './routes/users.js';
 
+// Import types for better RPC support
+import type { AuthRoutesType } from './routes/auth.js';
+import type { AssetRoutesType } from './routes/assets.js';
+import type { UserRoutesType } from './routes/users.js';
+
 // Define environment types for type safety
 type Bindings = {
   DATABASE_URL: string;
@@ -139,3 +144,6 @@ startServer();
 // Export app type for RPC client generation
 export default app;
 export type AppType = typeof api;
+
+// Export individual route types for granular RPC client generation
+export type { AuthRoutesType, AssetRoutesType, UserRoutesType };

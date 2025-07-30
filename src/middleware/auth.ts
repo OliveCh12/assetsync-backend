@@ -6,6 +6,7 @@
 
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { env } from 'hono/adapter';
 import { verifyToken, extractTokenFromHeader, type UserJWTPayload } from '../lib/auth/jwt.js';
 import { getDatabase } from '../lib/db.js';
 import { users, sessions } from '../lib/db.js';
@@ -33,14 +34,14 @@ export const authMiddleware = createMiddleware(async (c, next) => {
   }
 
   try {
-    // Get JWT secret from environment
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
+    // Get JWT secret from environment using Hono's env helper
+    const { JWT_SECRET } = env<{ JWT_SECRET: string }>(c);
+    if (!JWT_SECRET) {
       throw new Error('JWT_SECRET not configured');
     }
 
     // Verify the JWT token
-    const payload = await verifyToken(token, jwtSecret);
+    const payload = await verifyToken(token, JWT_SECRET);
 
     // Validate that this is an access token
     if (payload.tokenType !== 'access') {
@@ -144,9 +145,9 @@ export const optionalAuthMiddleware = createMiddleware(async (c, next) => {
 
   if (token) {
     try {
-      const jwtSecret = process.env.JWT_SECRET;
-      if (jwtSecret) {
-        const payload = await verifyToken(token, jwtSecret);
+      const { JWT_SECRET } = env<{ JWT_SECRET: string }>(c);
+      if (JWT_SECRET) {
+        const payload = await verifyToken(token, JWT_SECRET);
         
         if (payload.tokenType === 'access') {
           c.set('user', payload);

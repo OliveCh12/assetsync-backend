@@ -95,7 +95,7 @@ export const users = pgTable('users', {
 export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  token: varchar('token', { length: 255 }).notNull().unique(), // JWT or random token
+  token: text('token').notNull().unique(), // JWT or random token (can be long)
   expiresAt: timestamp('expires_at').notNull(),
   deviceInfo: jsonb('device_info'), // {userAgent, ip, deviceType, etc.}
   createdAt: timestamp('created_at').defaultNow().notNull(),

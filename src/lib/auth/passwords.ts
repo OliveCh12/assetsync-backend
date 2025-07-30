@@ -5,6 +5,7 @@
  */
 
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 const SALT_ROUNDS = 12; // Higher for better security
 
@@ -36,16 +37,14 @@ export const verifyPassword = async (password: string, hashedPassword: string): 
  * Generate a secure random password reset token
  */
 export const generateResetToken = (): string => {
-  const crypto = require('crypto');
-  return crypto.randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
 };
 
 /**
  * Generate a secure random email verification token
  */
 export const generateVerificationToken = (): string => {
-  const crypto = require('crypto');
-  return crypto.randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
 };
 
 /**
