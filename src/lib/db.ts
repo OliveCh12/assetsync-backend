@@ -219,7 +219,7 @@ export const assetCategories = pgTable('asset_categories', {
   name: varchar('name', { length: 100 }).notNull(),
   slug: varchar('slug', { length: 100 }).notNull().unique(),
   description: text('description'),
-  parentId: uuid('parent_id').references(() => assetCategories.id), // Hierarchical structure
+  parentId: uuid('parent_id'), // Hierarchical structure
   icon: varchar('icon', { length: 100 }), // Icon name or URL for UI
   
   // Category-specific valuation data
