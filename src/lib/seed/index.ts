@@ -6,7 +6,7 @@
 
 import { faker } from '@faker-js/faker';
 import { eq } from 'drizzle-orm';
-import { getDatabase, initDatabase, subscriptionPlans, platforms, assets, userOrganizations } from '../db.js';
+import { getDatabase, initDatabase, users, organizations, subscriptionPlans, platforms, assets, userOrganizations, assetCategories } from '../db.js';
 
 // Import seeders
 import { seedCategories } from './seeders/categories.seeder.js';

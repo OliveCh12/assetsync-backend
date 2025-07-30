@@ -1,6 +1,5 @@
 /**
- * Assetimport { env } from 'hono/adapter';
-import { initDatabase } from './lib/db.js';c Backend - Main Application Entry Point
+ * AssetSync Backend - Main Application Entry Point
  * 
  * Hono-based API server with RPC type safety for asset management platform
  */

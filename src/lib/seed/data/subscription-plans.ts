@@ -51,7 +51,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanData[] = [
     monthlyPrice: 6.99,
     yearlyPrice: 69.90, // 2 months free
     currency: 'EUR',
-    maxAssets: null, // unlimited
+    maxAssets: undefined, // unlimited
     maxUsers: 1,
     maxOrganizations: 0,
     features: [
@@ -121,12 +121,12 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanData[] = [
     slug: 'professional-enterprise',
     description: 'Large organizations with custom requirements',
     type: 'enterprise',
-    monthlyPrice: null, // Custom pricing
-    yearlyPrice: null,
+    monthlyPrice: undefined, // Custom pricing
+    yearlyPrice: undefined,
     currency: 'EUR',
-    maxAssets: null, // unlimited
-    maxUsers: null, // unlimited
-    maxOrganizations: null, // unlimited
+    maxAssets: undefined, // unlimited
+    maxUsers: undefined, // unlimited
+    maxOrganizations: undefined, // unlimited
     features: [
       'unlimited_assets',
       'unlimited_users',

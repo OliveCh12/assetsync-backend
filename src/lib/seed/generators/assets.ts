@@ -134,8 +134,8 @@ export function generateAsset(
       undefined
     ]),
     brand: categoryData.brand,
-    model: categoryData.model,
-    serialNumber: categoryData.serialNumber,
+    model: 'model' in categoryData ? categoryData.model : undefined,
+    serialNumber: 'serialNumber' in categoryData ? categoryData.serialNumber : undefined,
     condition,
     status: faker.helpers.weightedArrayElement([
       { weight: 70, value: 'active' },
