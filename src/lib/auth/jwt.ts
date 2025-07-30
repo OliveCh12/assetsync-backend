@@ -4,8 +4,7 @@
  * JWT token generation, verification, and management using Hono's built-in JWT helpers.
  */
 
-import { sign, verify, decode } from 'hono/jwt';
-import { randomBytes } from 'crypto';
+import { sign, verify } from 'hono/jwt';
 
 // JWT configuration constants
 export const JWT_ALGORITHM = 'HS256' as const;
@@ -102,85 +101,14 @@ export const verifyToken = async (
 };
 
 /**
- * Decode a JWT token without verification (for debugging)
- */
-export const decodeToken = (token: string): { header: any; payload: UserJWTPayload } => {
-  try {
-    const decoded = decode(token);
-    return {
-      header: decoded.header,
-      payload: decoded.payload as UserJWTPayload
-    };
-  } catch (error) {
-    throw new Error(`Failed to decode token: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
-
-/**
- * Check if a token is expired
- */
-export const isTokenExpired = (token: string): boolean => {
-  try {
-    const { payload } = decodeToken(token);
-    const now = Math.floor(Date.now() / 1000);
-    return payload.exp ? payload.exp < now : true;
-  } catch {
-    return true; // If we can't decode, consider it expired
-  }
-};
-
-/**
- * Extract token from Authorization header
+ * Extract the JWT string from an Authorization header.
  */
 export const extractTokenFromHeader = (authHeader: string | undefined): string | null => {
   if (!authHeader) return null;
-  
   const parts = authHeader.split(' ');
   if (parts.length !== 2 || parts[0] !== 'Bearer') {
     return null;
   }
-  
   return parts[1];
 };
 
-/**
- * Generate a secure random session token for database storage
- */
-export const generateSessionToken = (): string => {
-  return randomBytes(32).toString('hex');
-};
-
-/**
- * Validate JWT payload structure
- */
-export const validateJWTPayload = (payload: any): payload is UserJWTPayload => {
-  return (
-    payload &&
-    typeof payload.userId === 'string' &&
-    typeof payload.email === 'string' &&
-    (payload.type === 'personal' || payload.type === 'professional') &&
-    (payload.tokenType === 'access' || payload.tokenType === 'refresh') &&
-    typeof payload.iat === 'number' &&
-    typeof payload.exp === 'number'
-  );
-};
-
-/**
- * Enhanced token verification with payload validation
- */
-export const verifyTokenSafe = async (
-  token: string,
-  secret: string
-): Promise<UserJWTPayload> => {
-  try {
-    const payload = await verify(token, secret, JWT_ALGORITHM);
-    
-    if (!validateJWTPayload(payload)) {
-      throw new Error('Invalid JWT payload structure');
-    }
-    
-    return payload;
-  } catch (error) {
-    throw new Error(`Invalid token: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};

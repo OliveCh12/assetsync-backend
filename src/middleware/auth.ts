@@ -9,8 +9,8 @@ import { HTTPException } from 'hono/http-exception';
 import { env } from 'hono/adapter';
 import { verifyToken, extractTokenFromHeader, type UserJWTPayload } from '../lib/auth/jwt.js';
 import { getDatabase } from '../lib/db.js';
-import { users, sessions } from '../lib/db.js';
-import { eq, and, gt } from 'drizzle-orm';
+import { users } from '../lib/db.js';
+import { eq, and } from 'drizzle-orm';
 
 // Extend Hono's Variables type to include our user context
 declare module 'hono' {
@@ -87,80 +87,6 @@ export const authMiddleware = createMiddleware(async (c, next) => {
 /**
  * Optional middleware to validate session in database (for stricter security)
  */
-export const sessionMiddleware = createMiddleware(async (c, next) => {
-  const authHeader = c.req.header('Authorization');
-  const token = extractTokenFromHeader(authHeader);
-
-  if (!token) {
-    throw new HTTPException(401, { 
-      message: 'Authentication required' 
-    });
-  }
-
-  try {
-    const db = getDatabase();
-    
-    // Check if session exists and is valid
-    const session = await db.select({
-      id: sessions.id,
-      userId: sessions.userId,
-      expiresAt: sessions.expiresAt,
-    })
-    .from(sessions)
-    .where(
-      and(
-        eq(sessions.token, token),
-        gt(sessions.expiresAt, new Date())
-      )
-    )
-    .limit(1);
-
-    if (!session[0]) {
-      throw new HTTPException(401, { 
-        message: 'Session not found or expired' 
-      });
-    }
-
-    // Set user context
-    c.set('userId', session[0].userId);
-
-    await next();
-  } catch (error) {
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-    
-    throw new HTTPException(401, { 
-      message: 'Session validation failed' 
-    });
-  }
-});
-
-/**
- * Middleware for optional authentication (doesn't throw if no token)
- */
-export const optionalAuthMiddleware = createMiddleware(async (c, next) => {
-  const authHeader = c.req.header('Authorization');
-  const token = extractTokenFromHeader(authHeader);
-
-  if (token) {
-    try {
-      const { JWT_SECRET } = env<{ JWT_SECRET: string }>(c);
-      if (JWT_SECRET) {
-        const payload = await verifyToken(token, JWT_SECRET);
-        
-        if (payload.tokenType === 'access') {
-          c.set('user', payload);
-          c.set('userId', payload.userId);
-        }
-      }
-    } catch {
-      // Silently fail for optional auth
-    }
-  }
-
-  await next();
-});
 
 /**
  * Middleware to check user type (personal vs professional)
